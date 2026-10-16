@@ -1,0 +1,16 @@
+{
+  "name": "backend-dev-kit",
+  "owner": {
+    "name": "Yusufcandir"
+  },
+  "metadata": {
+    "description": "Backend development skills and agents for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "backend-dev-kit",
+      "source": "./",
+      "description": "Backend development skills and agents"
+    }
+  ]
+}

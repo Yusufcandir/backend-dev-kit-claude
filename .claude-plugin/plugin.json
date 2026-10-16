@@ -1,0 +1,11 @@
+{
+  "name": "backend-dev-kit",
+  "displayName": "Backend Dev Kit",
+  "version": "1.0.0",
+  "description": "Backend geliştirme için uçtan uca iş akışı: task analizi ve roadmap, kodlama ve eksik kontrolü, test ve kod review. Araştırmacı, güvenlik, test ve kodlama agent'ları içerir.",
+  "author": {
+    "name": "Yusufcandir"
+  },
+  "license": "MIT",
+  "keywords": ["backend", "roadmap", "code-review", "testing", "security"]
+}
