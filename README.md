@@ -2,9 +2,6 @@
 
 A Claude Code plugin for backend development. It takes a task end to end, from analysis to code review.
 
-> The skill and agent instructions are written in Turkish, so Claude's reports come out in Turkish by default.
-> They work with any language or stack.
-
 ## Contents
 
 ### Skills
@@ -47,6 +44,12 @@ Inside Claude Code:
 /plugin install backend-dev-kit@backend-dev-kit
 ```
 A local path also works in place of `Yusufcandir/backend-dev-kit`. After installing, restart Claude Code or run `/reload-plugins`.
+
+### Update to the latest version
+```
+/plugin marketplace update backend-dev-kit
+```
+Then restart Claude Code or run `/reload-plugins`.
 
 ### Validate
 ```bash

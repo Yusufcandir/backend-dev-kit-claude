@@ -1,114 +1,114 @@
 ---
 name: task-review
-description: Kodlanmış bir task'ı kontrol eder, testleri çalıştırır ve eksik testleri yazar, güvenlik dahil detaylı kod review yapar ve önceliklendirilmiş feedback verir. Kullanıcı "review yap", "kodu kontrol et", "test et", "feedback ver", "PR'ı incele" dediğinde kullan.
+description: Checks an implemented task, runs the tests and writes missing ones, does a detailed code review including security, and gives prioritized feedback. Use when the user says "review this", "check the code", "test it", "give feedback" or "review the PR".
 ---
 
-# Kod Kontrolü + Test + Code Review + Feedback
+# Code Check + Testing + Code Review + Feedback
 
-Girdi: incelenecek değişiklik. Kaynağı şu sırayla belirle:
-1. Kullanıcı bir PR / branch / commit / dosya verdiyse onu kullan.
-2. Yoksa çalışma dizinindeki değişiklikler: `git diff` + `git diff --staged`; boşsa ana branch'e göre fark
-   (`git diff $(git merge-base HEAD main)` — main yoksa master/develop).
-3. Varsa roadmap (`task-analysis` çıktısı) ve kodlama raporunu (`task-implementation` çıktısı) da oku;
-   review'ı bunlara karşı yap.
+Input: the change to review. Determine the source in this order:
+1. If the user gave a PR / branch / commit / file, use that.
+2. Otherwise, the changes in the working directory: `git diff` + `git diff --staged`; if empty, the diff against the main branch
+   (`git diff $(git merge-base HEAD main)` — use master/develop if there is no main).
+3. If they exist, also read the roadmap (`task-analysis` output) and the implementation report (`task-implementation` output),
+   and review against them.
 
-Kullanıcıdan ek bilgi bekleme; kapsamı yukarıdaki sırayla kendin belirle ve rapora yaz.
+Don't wait for extra information from the user; determine the scope yourself using the order above and state it in the report.
 
-## Adım 1 — Bağlamı anla
-- Değişikliğin amacı ne? (roadmap, commit mesajları, PR açıklaması)
-- Değişen dosyaları ve bunların çağırdığı/çağrıldığı yerleri oku. Sadece diff'e değil, etkilediği koda da bak.
+## Step 1 — Understand the context
+- What is the change for? (roadmap, commit messages, PR description)
+- Read the changed files and the places that call them or that they call. Look not only at the diff but at the code it affects.
 
-## Adım 2 — Doğrulama (paralel çalıştırılabilir)
-Aşağıdaki agent'ları **aynı anda** başlat, sonuçlarını birleştir:
-- `test-engineer`: mevcut testleri çalıştırır, değişikliğin test kapsamını ölçer, eksik testleri yazar ve çalıştırır.
-- `security-auditor`: değişikliği güvenlik açısından inceler.
+## Step 2 — Verification (can run in parallel)
+Start these agents **at the same time** and merge their results:
+- `test-engineer`: runs the existing tests, measures the change's test coverage, writes and runs missing tests.
+- `security-auditor`: reviews the change from a security perspective.
 
-Agent kullanılamıyorsa bu işleri kendin yap: build, lint, tüm testler; eksik kritik testleri yaz.
+If agents aren't available, do this yourself: build, lint, all tests; write the missing critical tests.
 
-## Adım 3 — Kod review kontrol listesi
+## Step 3 — Code review checklist
 
-**Doğruluk**
-- Mantık hataları, off-by-one, null/boş değer, yanlış koşul, hatalı hata yakalama
-- Eşzamanlılık: race condition, transaction sınırları, kilitler, idempotency
-- Hata durumları: harici servis hatası, timeout, retry, kısmi başarısızlık
-- Roadmap'teki gereksinimleri ve kabul kriterlerini gerçekten karşılıyor mu?
+**Correctness**
+- Logic errors, off-by-one, null/empty values, wrong conditions, faulty error handling
+- Concurrency: race conditions, transaction boundaries, locks, idempotency
+- Failure cases: external service failure, timeouts, retries, partial failure
+- Does it actually meet the roadmap's requirements and acceptance criteria?
 
-**Tasarım ve bakım**
-- Mevcut mimari ve desenlere uyum; katman ihlali (ör. controller'da iş mantığı)
-- Tekrarlanan kod, gereksiz karmaşıklık, sorumluluk dağılımı
-- İsimlendirme, okunabilirlik, ölü kod, TODO/FIXME
+**Design and maintainability**
+- Fit with the existing architecture and patterns; layering violations (e.g. business logic in a controller)
+- Duplicated code, unnecessary complexity, distribution of responsibilities
+- Naming, readability, dead code, TODO/FIXME
 
-**Veri ve API**
-- Migration güvenli ve geri alınabilir mi? Büyük tablolarda kilit riski?
-- Index ihtiyacı, N+1 sorgu, gereksiz veri çekme
-- API geriye dönük uyumlu mu? Hata kodları ve yanıt formatı tutarlı mı?
+**Data and API**
+- Is the migration safe and reversible? Locking risk on large tables?
+- Index needs, N+1 queries, fetching unnecessary data
+- Is the API backward compatible? Are error codes and response formats consistent?
 
-**Performans ve operasyon**
-- Döngü içinde I/O, büyük bellek kullanımı, sayfalama eksikliği
-- Loglama seviyesi ve içeriği (hassas veri loglanmamalı), metrik/trace
-- Konfigürasyon: sabit değerler, ortam bağımlılıkları
+**Performance and operations**
+- I/O inside loops, high memory use, missing pagination
+- Log levels and content (sensitive data must not be logged), metrics/traces
+- Configuration: hardcoded values, environment dependencies
 
-**Testler**
-- Testler davranışı mı doğruluyor yoksa implementasyonu mu? Anlamsız assertion var mı?
-- Negatif senaryolar ve uç durumlar test edilmiş mi?
+**Tests**
+- Do the tests verify behavior or implementation? Any meaningless assertions?
+- Are negative scenarios and edge cases tested?
 
-## Adım 4 — Bulguları önceliklendir
+## Step 4 — Prioritize the findings
 
-| Seviye | Anlamı |
+| Level | Meaning |
 |---|---|
-| 🔴 KRİTİK | Merge edilmemeli: bug, veri kaybı, güvenlik açığı, kırık test/build |
-| 🟠 YÜKSEK | Merge öncesi düzeltilmeli: eksik gereksinim, önemli uç durum, ciddi performans sorunu |
-| 🟡 ORTA | Düzeltilmesi önerilir: bakım, okunabilirlik, eksik test |
-| 🔵 DÜŞÜK | Öneri / stil / küçük iyileştirme |
+| 🔴 CRITICAL | Must not be merged: bug, data loss, security hole, broken test/build |
+| 🟠 HIGH | Must be fixed before merge: missing requirement, important edge case, serious performance issue |
+| 🟡 MEDIUM | Should be fixed: maintainability, readability, missing test |
+| 🔵 LOW | Suggestion / style / small improvement |
 
-Her bulgu somut olmalı: dosya:satır, sorunun ne olduğu, neden önemli olduğu, nasıl düzeltileceği (mümkünse kod örneğiyle).
-Emin olmadığın bulguları "doğrulanmadı" diye işaretle; tahmini kesin bilgi gibi yazma.
+Every finding must be concrete: file:line, what the problem is, why it matters, and how to fix it (with a code example when possible).
+Mark findings you're unsure of as "unverified"; don't present guesses as facts.
 
-## Rapor şablonu
+## Report template
 
 ```markdown
-# Code Review: <Task / PR adı>
+# Code Review: <Task / PR name>
 
-## Karar: ✅ Onaylandı | 🔁 Değişiklik gerekli | ❌ Reddedildi
-<1-2 cümle gerekçe>
+## Verdict: ✅ Approved | 🔁 Changes requested | ❌ Rejected
+<1-2 sentence rationale>
 
-## Özet
-- İncelenen kapsam: <diff kaynağı, dosya sayısı>
-- Bulgular: 🔴 x · 🟠 x · 🟡 x · 🔵 x
+## Summary
+- Scope reviewed: <diff source, number of files>
+- Findings: 🔴 x · 🟠 x · 🟡 x · 🔵 x
 
-## Test sonuçları
+## Test results
 - Build: ✅/❌
-- Testler: X geçti / Y kaldı (komut: `...`)
-- Yeni eklenen testler: ...
-- Kapsam notu: ...
+- Tests: X passed / Y failed (command: `...`)
+- Newly added tests: ...
+- Coverage note: ...
 
-## Gereksinim kontrolü
-| Gereksinim / AC | Durum | Not |
+## Requirements check
+| Requirement / AC | Status | Note |
 |---|---|---|
 
-## Bulgular
-### 🔴 KRİTİK
-#### K-1: <başlık>
-- **Konum:** `dosya:satır`
-- **Sorun:** ...
-- **Neden önemli:** ...
-- **Öneri:** ...
-### 🟠 YÜKSEK
+## Findings
+### 🔴 CRITICAL
+#### C-1: <title>
+- **Location:** `file:line`
+- **Problem:** ...
+- **Why it matters:** ...
+- **Suggestion:** ...
+### 🟠 HIGH
 ...
-### 🟡 ORTA
+### 🟡 MEDIUM
 ...
-### 🔵 DÜŞÜK
+### 🔵 LOW
 ...
 
-## Güvenlik özeti
-<security-auditor sonucundan özet>
+## Security summary
+<summary from the security-auditor result>
 
-## Olumlu noktalar
+## What's good
 - ...
 
-## Yapılacaklar (öncelik sırasıyla)
+## To do (in priority order)
 - [ ] ...
 ```
 
-Bulgu yoksa uydurma; "Bulgu yok" yaz ve kararı buna göre ver.
-Kullanıcı isterse düzeltmeleri `backend-coder` agent'ı ile uygulayıp review'ı tekrarla.
+If there are no findings, don't make any up; write "No findings" and base the verdict on that.
+If the user wants, apply the fixes with the `backend-coder` agent and repeat the review.

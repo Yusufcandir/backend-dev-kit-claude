@@ -1,108 +1,108 @@
 ---
 name: task-implementation
-description: Analiz edilmiş bir task'ı veya roadmap'i koda döker; kodlama sırasında çıkan sorunları, eksikleri ve belirsizlikleri raporlar; kodlama bitince roadmap'e göre eksiksizlik kontrolü yapar. Kullanıcı "roadmap'i uygula", "bu task'ı kodla", "implement et" dediğinde kullan.
+description: Implements an analyzed task or roadmap in code, reports problems, gaps and ambiguities found while coding, and runs a completeness check against the roadmap when coding is done. Use when the user says "implement the roadmap", "code this task" or "build this".
 ---
 
-# Task Kodlama + Sorun Bildirimi + Eksiksizlik Kontrolü
+# Task Implementation + Issue Reporting + Completeness Check
 
-Girdi: `task-analysis` skill'inin ürettiği roadmap (veya eşdeğer bir analiz dokümanı).
-Roadmap yoksa önce `task-analysis` skill'ini çalıştırıp roadmap üret, sonra bu skill'e devam et.
+Input: the roadmap produced by the `task-analysis` skill (or an equivalent analysis document).
+If there is no roadmap, first run the `task-analysis` skill to produce one, then continue with this skill.
 
-Bu skill üç fazdan oluşur. Fazları sırayla uygula.
+This skill has three phases. Run them in order.
 
 ---
 
-## Faz 1 — Hazırlık
+## Phase 1 — Preparation
 
-1. Roadmap'i oku; uygulama adımlarını, kabul kriterlerini (AC) ve test planını çıkar.
-2. Kod tabanını incele: mimari, isimlendirme, hata yönetimi, loglama, DI, test ve migration alışkanlıkları.
-   **Yeni kod mevcut kodun stilini taklit etmeli.**
-3. Build ve test komutlarını tespit et (README, Makefile, package.json scripts, CI dosyaları).
-4. Mevcut test durumunu kaydet (kodlamadan önce testler geçiyor mu?). Önceden kırık testleri raporda ayrı belirt.
-5. Bir **Takip Listesi** oluştur (TodoWrite/Task aracı varsa onu kullan): her roadmap adımı = bir madde.
+1. Read the roadmap; extract the implementation steps, acceptance criteria (AC) and test plan.
+2. Study the codebase: architecture, naming, error handling, logging, DI, testing and migration conventions.
+   **New code must mimic the style of the existing code.**
+3. Find the build and test commands (README, Makefile, package.json scripts, CI files).
+4. Record the current test status (do tests pass before you change anything?). Report tests that were already failing separately.
+5. Create a **Tracking List** (use the TodoWrite/Task tool if available): one item per roadmap step.
 
-## Faz 2 — Kodlama
+## Phase 2 — Implementation
 
-Her roadmap adımı için:
+For each roadmap step:
 
-1. Adımın yapılacaklarını uygula. Kodlama işini `backend-coder` agent'ına devredebilirsin
-   (büyük/bağımsız adımlarda paralel çalıştırmak için uygundur).
-2. Adıma ait testleri yaz (roadmap'teki T-x ID'leriyle eşleştir).
-3. Build + ilgili testleri çalıştır. Kırmızıysa düzelt; düzeltilemiyorsa Sorun Kaydı'na yaz.
-4. Takip Listesi'nde adımı tamamlandı olarak işaretle.
+1. Implement the step's to-do items. You can delegate the coding to the `backend-coder` agent
+   (well suited to running large or independent steps in parallel).
+2. Write the step's tests (match them to the T-x IDs in the roadmap).
+3. Run the build and the relevant tests. If they're red, fix them; if you can't, add it to the Issue Log.
+4. Mark the step as done in the Tracking List.
 
-### Sorun Kaydı — kodlarken ne zaman bildirilir
+### Issue Log — when to report while coding
 
-Aşağıdakilerden biri olduğunda **hemen** kullanıcıya kısa bir not geç ve Sorun Kaydı'na ekle.
-İşi bloklamıyorsa makul bir çözümle devam et; blokluyorsa o adımı atla, sonraki bağımsız adımla devam et.
+When any of the following happens, give the user a short note **right away** and add it to the Issue Log.
+If it doesn't block the work, continue with a reasonable solution; if it does, skip that step and continue with the next independent one.
 
-| Tür | Örnek |
+| Type | Example |
 |---|---|
-| `EKSİK-GEREKSİNİM` | Roadmap'te hata durumunda ne döneceği yazmıyor |
-| `ÇELİŞKİ` | Roadmap X diyor, mevcut kod/şema Y'ye izin vermiyor |
-| `TEKNİK-ENGEL` | Gerekli kütüphane/servis/erişim yok, migration çakışıyor |
-| `RİSK` | Değişiklik geriye dönük uyumluluğu bozuyor, performans sorunu riski |
-| `KAPSAM-DIŞI` | Düzgün çalışması için roadmap dışı bir değişiklik gerekiyor |
-| `TEKNİK-BORÇ` | Mevcut kodda fark edilen ama bu task'ta düzeltilmeyen sorun |
+| `MISSING-REQUIREMENT` | The roadmap doesn't say what to return on error |
+| `CONFLICT` | The roadmap says X, but the existing code/schema doesn't allow Y |
+| `TECHNICAL-BLOCKER` | A required library/service/access is missing, a migration conflicts |
+| `RISK` | The change breaks backward compatibility, risk of a performance problem |
+| `OUT-OF-SCOPE` | Working correctly needs a change outside the roadmap |
+| `TECH-DEBT` | A problem noticed in the existing code that this task doesn't fix |
 
-Kayıt formatı:
+Entry format:
 ```
-[TÜR] <kısa başlık>
-- Nerede: <dosya:satır veya roadmap adımı>
-- Sorun: ...
-- Etki: ...
-- Yapılan / Öneri: ...
-- Bloklayıcı mı: Evet/Hayır
+[TYPE] <short title>
+- Where: <file:line or roadmap step>
+- Problem: ...
+- Impact: ...
+- Action taken / Suggestion: ...
+- Blocking: Yes/No
 ```
 
-### Kodlama kuralları
+### Coding rules
 
-- Sadece roadmap kapsamındaki değişiklikleri yap; ilgisiz refactor yapma (gerekiyorsa `KAPSAM-DIŞI` olarak bildir).
-- Gizli bilgi (şifre, token, anahtar) koda gömme; mevcut konfigürasyon mekanizmasını kullan.
-- Girdi doğrulama, yetkilendirme, hata yönetimi ve loglamayı mevcut desenlere uygun ekle.
-- Veritabanı değişikliklerini migration ile yap; geri alınabilir (down/rollback) olsun.
-- Testi atlama, devre dışı bırakma veya "geçsin diye" assertion zayıflatma yapma.
+- Only make changes within the roadmap's scope; no unrelated refactoring (report it as `OUT-OF-SCOPE` if needed).
+- Never hardcode secrets (passwords, tokens, keys); use the existing configuration mechanism.
+- Add input validation, authorization, error handling and logging following the existing patterns.
+- Make database changes through migrations, and make them reversible (down/rollback).
+- Never skip or disable tests, or weaken assertions "to make them pass".
 
-## Faz 3 — Eksiksizlik Kontrolü
+## Phase 3 — Completeness Check
 
-Kodlama bitince roadmap'e karşı sistematik kontrol yap:
+When coding is done, check systematically against the roadmap:
 
-1. **Adım kontrolü:** Her uygulama adımı ve alt maddesi yapıldı mı?
-2. **Gereksinim izlenebilirliği:** Her FR/NFR → hangi dosyada karşılandı → hangi testle doğrulandı?
-3. **Kabul kriterleri:** Her AC için kanıt (test adı, komut çıktısı veya kod referansı).
-4. **Test planı:** Roadmap'teki her T-x yazıldı mı ve geçiyor mu?
-5. **Uç durumlar ve güvenlik listesi:** Roadmap'in 8. ve 9. bölümlerindeki her madde ele alındı mı?
-6. **Temizlik:** TODO/FIXME, debug log, yorum satırına alınmış kod, kullanılmayan import kalmadı mı?
-7. **Tam build + tüm test paketi** son kez çalıştırılır; sonuç rapora yazılır.
+1. **Steps:** Was every implementation step and sub-item done?
+2. **Requirement traceability:** Each FR/NFR → which file satisfies it → which test verifies it?
+3. **Acceptance criteria:** Evidence for each AC (test name, command output or code reference).
+4. **Test plan:** Was every T-x in the roadmap written, and does it pass?
+5. **Edge cases and security checklist:** Was every item in sections 8 and 9 of the roadmap handled?
+6. **Cleanup:** No leftover TODO/FIXME, debug logs, commented-out code or unused imports?
+7. Run the **full build + entire test suite** one last time; put the result in the report.
 
-Eksik bulunursa: tamamla ve kontrolü tekrarla. Tamamlanamıyorsa rapora `EKSİK` olarak yaz.
+If something is missing, complete it and repeat the check. If it can't be completed, list it in the report as `MISSING`.
 
-## Son rapor (şablon)
+## Final report (template)
 
 ```markdown
-# Kodlama Raporu: <Task adı>
+# Implementation Report: <Task name>
 
-## Durum: ✅ Tamamlandı | ⚠️ Kısmen tamamlandı | ❌ Bloklandı
+## Status: ✅ Complete | ⚠️ Partially complete | ❌ Blocked
 
-## Yapılan değişiklikler
-| Dosya | Değişiklik | Roadmap adımı |
+## Changes made
+| File | Change | Roadmap step |
 |---|---|---|
 
-## Eksiksizlik matrisi
-| Gereksinim / AC | Karşılandığı yer | Test | Durum (✅/⚠️/❌) |
+## Completeness matrix
+| Requirement / AC | Where satisfied | Test | Status (✅/⚠️/❌) |
 |---|---|---|---|
 
-## Test sonuçları
-- Komut: `...`
-- Sonuç: X geçti / Y kaldı / Z atlandı
-- Önceden kırık olan testler: ...
+## Test results
+- Command: `...`
+- Result: X passed / Y failed / Z skipped
+- Previously failing tests: ...
 
-## Sorun Kaydı
-<Faz 2'de kaydedilen tüm sorunlar, bloklayıcılar en üstte>
+## Issue Log
+<All issues logged in Phase 2, blockers first>
 
-## Eksik kalanlar
-- ... (yoksa "Yok")
+## Still missing
+- ... (or "None")
 
-## Sonraki adım
-Kod review ve test için `task-review` skill'ini çalıştır.
+## Next step
+Run the `task-review` skill for code review and testing.
 ```
